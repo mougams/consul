@@ -1140,6 +1140,7 @@ func TestDecodeConfig_Services(t *testing.T) {
 				"port": 9200,
 				"check": {
 					"HTTP": "http://localhost:9200/_cluster_health",
+					"host_header": "test.example",
 					"interval": "10s",
 					"timeout": "100ms"
 				}
@@ -1193,9 +1194,10 @@ func TestDecodeConfig_Services(t *testing.T) {
 			},
 			&ServiceDefinition{
 				Check: CheckType{
-					HTTP:     "http://localhost:9200/_cluster_health",
-					Interval: 10 * time.Second,
-					Timeout:  100 * time.Millisecond,
+					HTTP:       "http://localhost:9200/_cluster_health",
+					HostHeader: "test.example",
+					Interval:   10 * time.Second,
+					Timeout:    100 * time.Millisecond,
 				},
 				ID:   "es0",
 				Name: "elasticsearch",
@@ -1300,6 +1302,13 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				"timeout": "100ms",
 				"service_id": "elasticsearch",
                 "head": true
+            },
+            {
+				"name": "service:behind-reverseproxy",
+				"HTTP": "http://localhost/status",
+				"host_header": "proxy.example",
+				"interval": "10s",
+				"service_id": "behind-reverseproxy"
 			}
 		]
 	}`
@@ -1377,6 +1386,16 @@ func TestDecodeConfig_Checks(t *testing.T) {
 					Interval: 10 * time.Second,
 					Timeout:  100 * time.Millisecond,
 					Head:     true,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk8",
+				Name:      "service:behind-reverseproxy",
+				ServiceID: "behind-reverseproxy",
+				CheckType: CheckType{
+					HTTP:          "http://localhost/status",
+					HostHeader:    "proxy.example",
+					Interval:      10 * time.Second,
 				},
 			},
 		},

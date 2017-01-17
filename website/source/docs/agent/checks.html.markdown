@@ -38,7 +38,9 @@ There are five different kinds of checks:
   also support SSL. By default, a valid SSL certificate is expected. Certificate
   verification can be turned off by setting the `tls_skip_verify` field to `true`
   in the check definition. The request will be , by default, a `GET` but can be
-  turned into a `HEAD` by setting `head` field to `true`.
+  turned into a `HEAD` by setting `head` field to `true`. HTTP `Host` header
+  can be set using the `HostHeader` field
+  for checks that are perfomed through a reverse proxy.
 
 * TCP + Interval - These checks make an TCP connection attempt every Interval
   (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname

@@ -48,6 +48,7 @@ type CheckType struct {
 	Interval          time.Duration
 	DockerContainerID string
 	Shell             string
+	HostHeader        string
 	TLSSkipVerify     bool
 	Head              bool
 
@@ -342,6 +343,7 @@ type CheckHTTP struct {
 	Interval      time.Duration
 	Timeout       time.Duration
 	Logger        *log.Logger
+	HostHeader    string
 	TLSSkipVerify bool
 	Head          bool
 
@@ -435,6 +437,9 @@ func (c *CheckHTTP) check() {
 
 	req.Header.Set("User-Agent", HttpUserAgent)
 	req.Header.Set("Accept", "text/plain, text/*, */*")
+	if c.HostHeader != "" {
+		req.Host = c.HostHeader
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
