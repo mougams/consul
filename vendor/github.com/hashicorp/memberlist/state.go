@@ -606,20 +606,26 @@ func (m *Memberlist) verifyProtocol(remote []pushNodeState) error {
 
 		if rn.Vsn[0] > maxpmin {
 			maxpmin = rn.Vsn[0]
+            fmt.Printf("Node '%s' put constraint on maxpmin to %d\n", rn.Name, maxpmin)
 		}
 
 		if rn.Vsn[1] < minpmax {
 			minpmax = rn.Vsn[1]
+            fmt.Printf("Node '%s' put constraint on minpmax to %d\n", rn.Name, minpmax)
 		}
 
 		if rn.Vsn[3] > maxdmin {
 			maxdmin = rn.Vsn[3]
+            fmt.Printf("Node '%s' put constraint on maxdmin to %d\n", rn.Name, maxdmin)
 		}
 
 		if rn.Vsn[4] < mindmax {
 			mindmax = rn.Vsn[4]
+            fmt.Printf("Node '%s' put constraint on mindmax to %d\n", rn.Name, mindmax)
 		}
 	}
+
+    fmt.Printf("End of iteration on remote nodes\n")
 
 	for _, n := range m.nodes {
 		// Ignore non-alive nodes
@@ -629,18 +635,22 @@ func (m *Memberlist) verifyProtocol(remote []pushNodeState) error {
 
 		if n.PMin > maxpmin {
 			maxpmin = n.PMin
+            fmt.Printf("Node '%s' put constraint on maxpmin to %d\n", n.Name, maxpmin)
 		}
 
 		if n.PMax < minpmax {
 			minpmax = n.PMax
+            fmt.Printf("Node '%s' put constraint on minpmax to %d\n", n.Name, minpmax)
 		}
 
 		if n.DMin > maxdmin {
 			maxdmin = n.DMin
+            fmt.Printf("Node '%s' put constraint on maxdmin to %d\n", n.Name, maxdmin)
 		}
 
 		if n.DMax < mindmax {
 			mindmax = n.DMax
+            fmt.Printf("Node '%s' put constraint on mindmax to %d\n", n.Name, mindmax)
 		}
 	}
 
@@ -666,6 +676,8 @@ func (m *Memberlist) verifyProtocol(remote []pushNodeState) error {
 				n.Name, nDCur, maxdmin, mindmax)
 		}
 	}
+
+    fmt.Printf("end of iteration on remote nodes\n")
 
 	for _, n := range m.nodes {
 		nPCur := n.PCur
