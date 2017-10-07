@@ -8,6 +8,7 @@ branches:
     - master
 
 script:
-  - make test
+  - find . -type f -name "*go" | xargs sed 's|github.com/hashicorp/consul|github.com/criteo-forks/consul|' -i
+  - make linux
 
 sudo: false
