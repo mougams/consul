@@ -106,6 +106,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	handleFuncMetrics("/v1/agent/join/", s.wrap(s.AgentJoin))
 	handleFuncMetrics("/v1/agent/leave", s.wrap(s.AgentLeave))
 	handleFuncMetrics("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
+	handleFuncMetrics("/v1/agent/health/service/", s.wrap(s.AgentHealthService))
 	handleFuncMetrics("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
 	handleFuncMetrics("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
 	handleFuncMetrics("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
