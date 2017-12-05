@@ -3,10 +3,6 @@ language: go
 go:
   - 1.x
 
-branches:
-  only:
-    - master
-
 script:
   - find . -type f -name "*go" | xargs sed 's|github.com/hashicorp/consul|github.com/criteo-forks/consul|' -i
   - make linux
