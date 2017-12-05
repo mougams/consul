@@ -514,7 +514,8 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 
 func (s *HTTPServer) AgentHealthService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "GET" {
-		return nil, MethodNotAllowedError{req.Method, []string{"GET"}}
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
 	}
 
 	// Pull out the service id (service id since there may be several instance of the same service on this host)
