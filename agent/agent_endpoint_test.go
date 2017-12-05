@@ -133,7 +133,7 @@ func TestAgent_Checks(t *testing.T) {
 
 func TestAgent_Health_Service(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t.Name(), nil)
 	defer a.Shutdown()
 
 	service := &structs.NodeService{
