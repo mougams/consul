@@ -5,6 +5,25 @@ go:
 
 script:
   - find . -type f -name "*go" | xargs sed 's|github.com/hashicorp/consul|github.com/criteo-forks/consul|' -i
-  - make linux
+  - make
 
 sudo: false
+
+before_deploy:
+  - export VERSION=$(echo $TRAVIS_TAG | sed 's/^v//' )
+  - echo "deploying $VERSION to GitHub releases"
+  - tar czvf consul-$VERSION_linux_amd64.tgz ./pkg/linux_amd64/consul
+
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: geOsznYimDVjY54rYF5K205bjt+Q/vZRa7trLq8IKSxf/NiZb4ZiQzPcFfQ4328nA++7+NSW697YwpdJiB4M+21FEcpsB4kLPqrqr92o8u12Zgn5wOJUmNi1wrJyKjO5pScB6qf7Ev8hvpXCvAVRK7tltRfLT2xYQ+JGXYuiForHd4yMbK6WFOvi0zjkUjqosdffAb9SqbmKmI2K0VGP/5q90ZfShmEAk4WYth+dECloVhvBksqcRympL5VijM2cq4MrY/NMDznyX9VvmpQiae+Q1A4fhrUfPTPVmDJStZlIVXwIFNFVZJdXeUZOyafKMOaCU5XB9LFrkX2NlaGjEtWYSBP3uGm0/uApzNCTJ2OodT5WMqeuQTCLbmQbfOfstyeCx/g+YzmVhgK5EiWWPLrfIzucj2P2uEtt0mBlMiw4Ts+Maw5ehMVb+pEMHDVAneMyZw8zyd3EvG6RLnO05kgLmy5gS7ozHhyPFG57xcclKzZ9eV8rHbiCxPrvuAyCwfdM3hp9/A10u+CkQCr43KIPrcTsREbMAkcdmHh5jM0AGw5zcUlGSIZNDQ/soNfLqaBAESpvFW4c4Ak7CIr8HxV1imiBgn3PnwHeWTz4wlcAflxPb7DGbCReyMIOfW+RNzIpCorxfXi5xg29Q7OSRH+rGA3vtcA4IwY8vAPsriU=
+  file_glob: true
+  file: 
+    - "marathon-$VERSION_linux_amd64.tgz"
+  on:
+    tags: true
+    repo: criteo-forks/consul
+
+
