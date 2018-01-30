@@ -90,6 +90,8 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	// special criteo behavior: no non-stale read is allowed on /catalog/services
+	args.QueryOptions.AllowStale = true
 
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
