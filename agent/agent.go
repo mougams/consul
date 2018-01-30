@@ -1600,6 +1600,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
 		}
 		check.ServiceName = svc.Service
+		check.ServiceTags = svc.Tags
 	}
 
 	a.checkLock.Lock()
