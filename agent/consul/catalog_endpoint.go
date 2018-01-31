@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -218,6 +219,12 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			}
 			if err != nil {
 				return err
+			}
+
+			// Provide some metrics
+			if err == nil {
+				metrics.IncrCounterWithLabels([]string{"consul", "catalog", "services", "query"}, 1,
+					[]metrics.Label{{Name: "stale", Value: strconv.FormatBool(args.QueryOptions.AllowStale)}})
 			}
 
 			reply.Index, reply.Services = index, services
