@@ -9,6 +9,8 @@ script:
 sudo: false
 before_deploy:
   - export VERSION=$(echo $TRAVIS_TAG | sed 's/^v//' )
+  - export PRERELEASE=$(echo $VERSION | cut -d '-' -f 2)
+  - sed -i "s/VersionPrerelease = \".*\"/VersionPrerelease = \"$PRERELEASE\"/"   version/version.go
   - echo "deploying $VERSION to GitHub releases"
   - for d in $(find ./pkg -type d -maxdepth 1 -mindepth 1 | cut -d '/' -f3); do zip -j consul_${VERSION}_${d}.zip ./pkg/${d}/consul* ; done
 deploy:
