@@ -5,14 +5,14 @@ env:
   - XC_OS="linux windows" XC_ARCH=amd64
 script:
   - find . -type f -name "*go" | xargs sed 's|github.com/hashicorp/consul|github.com/criteo-forks/consul|' -i
-  - make
+  - export VERSION=$(echo $TRAVIS_TAG | sed 's/^v//' )
+  - export PRERELEASE=$(echo $VERSION | cut -d '-' -f 2)
+  - sed -i "s/VersionPrerelease = \".*\"/VersionPrerelease = \"$PRERELEASE\"/" version/version.go
+  - make -j 2
   - echo "Checking version of Consul:"
   - ./bin/consul --version
 sudo: false
 before_deploy:
-  - export VERSION=$(echo $TRAVIS_TAG | sed 's/^v//' )
-  - export PRERELEASE=$(echo $VERSION | cut -d '-' -f 2)
-  - sed -i "s/VersionPrerelease = \".*\"/VersionPrerelease = \"$PRERELEASE\"/"   version/version.go
   - echo "Deploying $VERSION(-$PRERELEASE) to GitHub releases"
   - for d in $(find ./pkg -type d -maxdepth 1 -mindepth 1 | cut -d '/' -f3); do zip -j consul_${VERSION}_${d}.zip ./pkg/${d}/consul* ; done
 deploy:
