@@ -14,8 +14,10 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -1835,6 +1837,247 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	}
 }
 
+func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
+	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	serviceNodes := []struct {
+		name    string
+		address string
+		coord   *coordinate.Coordinate
+	}{
+		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	added := 0
+
+	// Register nodes with a service
+	for _, cfg := range serviceNodes {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       cfg.name,
+			Address:    cfg.address,
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		err := a.RPC("Catalog.Register", args, &out)
+		require.NoError(t, err)
+
+		// Send coordinate updates
+		coordArgs := structs.CoordinateUpdateRequest{
+			Datacenter: "dc1",
+			Node:       cfg.name,
+			Coord:      cfg.coord,
+		}
+		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		require.NoError(t, err)
+
+		added += 1
+	}
+
+	fmt.Printf("Added %d service nodes\n", added)
+
+	// Register a node without a service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "198.18.0.9",
+		}
+
+		var out struct{}
+		err := a.RPC("Catalog.Register", args, &out)
+		require.NoError(t, err)
+
+		// Send coordinate updates for a few nodes.
+		coordArgs := structs.CoordinateUpdateRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Coord:      ipCoord,
+		}
+		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		require.NoError(t, err)
+	}
+
+	// Register a prepared query Near = _ip
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "some.query.we.like",
+				Service: structs.ServiceQuery{
+					Service: "db",
+					Near:    "_ip",
+				},
+			},
+		}
+
+		var id string
+		err := a.RPC("PreparedQuery.Apply", args, &id)
+		require.NoError(t, err)
+	}
+	retry.Run(t, func(r *retry.R) {
+		m := new(dns.Msg)
+		m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
+		m.SetEdns0(4096, false)
+		o := new(dns.OPT)
+		o.Hdr.Name = "."
+		o.Hdr.Rrtype = dns.TypeOPT
+		e := new(dns.EDNS0_SUBNET)
+		e.Code = dns.EDNS0SUBNET
+		e.Family = 1
+		e.SourceNetmask = 32
+		e.SourceScope = 0
+		e.Address = net.ParseIP("198.18.0.9").To4()
+		o.Option = append(o.Option, e)
+		m.Extra = append(m.Extra, o)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			r.Fatalf("Error with call to dns.Client.Exchange: %s", err)
+		}
+
+		if len(serviceNodes) != len(in.Answer) {
+			r.Fatalf("Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
+		}
+
+		for i, rr := range in.Answer {
+			if aRec, ok := rr.(*dns.A); ok {
+				if actual := aRec.A.String(); serviceNodes[i].address != actual {
+					r.Fatalf("Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
+				}
+			} else {
+				r.Fatalf("DNS Answer contained a non-A RR")
+			}
+		}
+	})
+}
+
+func TestDNS_PreparedQueryNearIP(t *testing.T) {
+	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	serviceNodes := []struct {
+		name    string
+		address string
+		coord   *coordinate.Coordinate
+	}{
+		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t.Name(), "")
+	defer a.Shutdown()
+
+	added := 0
+
+	// Register nodes with a service
+	for _, cfg := range serviceNodes {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       cfg.name,
+			Address:    cfg.address,
+			Service: &structs.NodeService{
+				Service: "db",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		err := a.RPC("Catalog.Register", args, &out)
+		require.NoError(t, err)
+
+		// Send coordinate updates
+		coordArgs := structs.CoordinateUpdateRequest{
+			Datacenter: "dc1",
+			Node:       cfg.name,
+			Coord:      cfg.coord,
+		}
+		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		require.NoError(t, err)
+
+		added += 1
+	}
+
+	fmt.Printf("Added %d service nodes\n", added)
+
+	// Register a node without a service
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "198.18.0.9",
+		}
+
+		var out struct{}
+		err := a.RPC("Catalog.Register", args, &out)
+		require.NoError(t, err)
+
+		// Send coordinate updates for a few nodes.
+		coordArgs := structs.CoordinateUpdateRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Coord:      ipCoord,
+		}
+		err = a.RPC("Coordinate.Update", &coordArgs, &out)
+		require.NoError(t, err)
+	}
+
+	// Register a prepared query Near = _ip
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "some.query.we.like",
+				Service: structs.ServiceQuery{
+					Service: "db",
+					Near:    "_ip",
+				},
+			},
+		}
+
+		var id string
+		err := a.RPC("PreparedQuery.Apply", args, &id)
+		require.NoError(t, err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		m := new(dns.Msg)
+		m.SetQuestion("some.query.we.like.query.consul.", dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			r.Fatalf("Error with call to dns.Client.Exchange: %s", err)
+		}
+
+		if len(serviceNodes) != len(in.Answer) {
+			r.Fatalf("Expecting %d A RRs in response, Actual found was %d", len(serviceNodes), len(in.Answer))
+		}
+
+		for i, rr := range in.Answer {
+			if aRec, ok := rr.(*dns.A); ok {
+				if actual := aRec.A.String(); serviceNodes[i].address != actual {
+					r.Fatalf("Expecting A RR #%d = %s, Actual RR was %s", i, serviceNodes[i].address, actual)
+				}
+			} else {
+				r.Fatalf("DNS Answer contained a non-A RR")
+			}
+		}
+	})
+}
+
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), "")
@@ -2740,6 +2983,97 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
+func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), `
+		dns_config {
+			enable_truncate = true
+		}
+	`)
+	defer a.Shutdown()
+
+	services := []string{"normal", "truncated"}
+	for index, service := range services {
+		numServices := (index * 5000) + 2
+		for i := 1; i < numServices; i++ {
+			args := &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       fmt.Sprintf("%s-%d.acme.com", service, i),
+				Address:    fmt.Sprintf("127.%d.%d.%d", index, (i / 255), i%255),
+				Service: &structs.NodeService{
+					Service: service,
+					Port:    8000,
+				},
+			}
+
+			var out struct{}
+			if err := a.RPC("Catalog.Register", args, &out); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		// Register an equivalent prepared query.
+		var id string
+		{
+			args := &structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Name: service,
+					Service: structs.ServiceQuery{
+						Service: service,
+					},
+				},
+			}
+			if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		// Look up the service directly and via prepared query. Ensure the
+		// response is truncated each time.
+		questions := []string{
+			fmt.Sprintf("%s.service.consul.", service),
+			id + ".query.consul.",
+		}
+		protocols := []string{
+			"tcp",
+			"udp",
+		}
+		for _, qType := range []uint16{dns.TypeANY, dns.TypeA, dns.TypeSRV} {
+			for _, question := range questions {
+				for _, protocol := range protocols {
+					for _, compress := range []bool{true, false} {
+						t.Run(fmt.Sprintf("lookup %s %s (qType:=%d) compressed=%v", question, protocol, qType, compress), func(t *testing.T) {
+							m := new(dns.Msg)
+							m.SetQuestion(question, dns.TypeANY)
+							if protocol == "udp" {
+								m.SetEdns0(8192, true)
+							}
+							c := new(dns.Client)
+							c.Net = protocol
+							m.Compress = compress
+							in, out, err := c.Exchange(m, a.DNSAddr())
+							if err != nil && err != dns.ErrTruncated {
+								t.Fatalf("err: %v", err)
+							}
+
+							// Check for the truncate bit
+							shouldBeTruncated := numServices > 4095
+
+							if shouldBeTruncated != in.Truncated || len(in.Answer) > 2000 || len(in.Answer) < 1 || in.Len() > 65535 {
+								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
+									service, question, protocol, numServices, len(in.Answer), out)
+								t.Fatalf("Should have truncated:=%v for %s", shouldBeTruncated, info)
+							}
+						})
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t.Name(), `
@@ -3079,14 +3413,14 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name               string
-		aRecordLimit       int
-		expectedAResults   int
-		expectedAAAAResuls int
-		expectedSRVResults int
-		numNodesTotal      int
-		udpSize            uint16
-		udpAnswerLimit     int
+		name                string
+		aRecordLimit        int
+		expectedAResults    int
+		expectedAAAAResults int
+		expectedSRVResults  int
+		numNodesTotal       int
+		udpSize             uint16
+		udpAnswerLimit      int
 	}{
 		// UDP + EDNS
 		{"udp-edns-1", 1, 1, 1, 30, 30, 8192, 3},

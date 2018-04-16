@@ -69,6 +69,19 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	}
 	verifyNode()
 
+	// Add in a invalid service definition with too long Key value for Meta
+	req.Service = &structs.NodeService{
+		ID:      "redis1",
+		Service: "redis",
+		Address: "1.1.1.1",
+		Port:    8080,
+		Meta:    map[string]string{strings.Repeat("a", 129): "somevalue"},
+		Tags:    []string{"master"},
+	}
+	if err := s.EnsureRegistration(9, req); err == nil {
+		t.Fatalf("Service should not have been registered since Meta is invalid")
+	}
+
 	// Add in a service definition.
 	req.Service = &structs.NodeService{
 		ID:      "redis1",
@@ -2119,7 +2132,6 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	// Register a node and a node-level health check.
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterCheck(t, s, 2, "node1", "", "check1", api.HealthPassing)
-	testRegisterService(t, s, 2, "node1", "service1")
 
 	// Make sure the check is there.
 	ws := memdb.NewWatchSet()
@@ -2131,8 +2143,6 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 		t.Fatalf("bad: %#v", checks)
 	}
 
-	ensureServiceVersion(t, s, ws, "service1", 2, 1)
-
 	// Delete the check.
 	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
 		t.Fatalf("err: %s", err)
@@ -2140,8 +2150,6 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
-	// All services linked to this node should have their index updated
-	ensureServiceVersion(t, s, ws, "service1", 3, 1)
 
 	// Check is gone
 	ws = memdb.NewWatchSet()
@@ -2204,10 +2212,10 @@ func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceNam
 	}
 }
 
-// TestIndexIndependance test that changes on a given service does not impact the
+// TestIndexIndependence test that changes on a given service does not impact the
 // index of other services. It allows to have huge benefits for watches since
 // watchers are notified ONLY when there are changes in the given service
-func TestIndexIndependance(t *testing.T) {
+func TestIndexIndependence(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no matches gives an empty response

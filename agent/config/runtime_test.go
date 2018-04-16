@@ -1065,7 +1065,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "serf wan port > 0",
+			desc: "allow disabling serf wan port",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
 				"ports": {
@@ -1079,7 +1079,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				advertise_addr_wan = "1.2.3.4"
 			`},
-			err: "ports.serf_wan must be a valid port from 1 to 65535",
+			patch: func(rt *RuntimeConfig) {
+				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
+				rt.SerfAdvertiseAddrWAN = nil
+				rt.SerfBindAddrWAN = nil
+				rt.TaggedAddresses = map[string]string{
+					"lan": "10.0.0.1",
+					"wan": "1.2.3.4",
+				}
+				rt.DataDir = dataDir
+				rt.SerfPortWAN = -1
+			},
 		},
 		{
 			desc: "serf bind address lan template",
@@ -2294,6 +2304,7 @@ func TestFullConfig(t *testing.T) {
 			"disable_remote_exec": true,
 			"disable_update_check": true,
 			"discard_check_output": true,
+			"discovery_max_stale": "5s",
 			"domain": "7W1xXSqd",
 			"dns_config": {
 				"allow_stale": true,
@@ -2581,7 +2592,7 @@ func TestFullConfig(t *testing.T) {
 				"statsd_address": "drce87cy",
 				"statsite_address": "HpFwKB8R"
 			},
-			"tls_cipher_suites": "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+			"tls_cipher_suites": "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
 			"tls_min_version": "pAOWafkR",
 			"tls_prefer_server_cipher_suites": true,
 			"translate_wan_addrs": true,
@@ -2730,6 +2741,7 @@ func TestFullConfig(t *testing.T) {
 			disable_remote_exec = true
 			disable_update_check = true
 			discard_check_output = true
+			discovery_max_stale = "5s"
 			domain = "7W1xXSqd"
 			dns_config {
 				allow_stale = true
@@ -3017,7 +3029,7 @@ func TestFullConfig(t *testing.T) {
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
 			}
-			tls_cipher_suites = "TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+			tls_cipher_suites = "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
 			tls_min_version = "pAOWafkR"
 			tls_prefer_server_cipher_suites = true
 			translate_wan_addrs = true
@@ -3057,6 +3069,7 @@ func TestFullConfig(t *testing.T) {
 					"ae_interval": "10003s",
 					"check_deregister_interval_min": "27870s",
 					"check_reap_interval": "10662s",
+					"discovery_max_stale": "5s",
 					"segment_limit": 24705,
 					"segment_name_limit": 27046,
 					"sync_coordinate_interval_min": "27983s",
@@ -3111,6 +3124,7 @@ func TestFullConfig(t *testing.T) {
 					ae_interval = "10003s"
 					check_deregister_interval_min = "27870s"
 					check_reap_interval = "10662s"
+					discovery_max_stale = "5s"
 					segment_limit = 24705
 					segment_name_limit = 27046
 					sync_coordinate_interval_min = "27983s"
@@ -3317,6 +3331,7 @@ func TestFullConfig(t *testing.T) {
 		DisableRemoteExec:         true,
 		DisableUpdateCheck:        true,
 		DiscardCheckOutput:        true,
+		DiscoveryMaxStale:         5 * time.Second,
 		EnableACLReplication:      true,
 		EnableAgentTLSForChecks:   true,
 		EnableDebug:               true,
@@ -3575,7 +3590,7 @@ func TestFullConfig(t *testing.T) {
 		TelemetryMetricsPrefix:                      "ftO6DySn",
 		TelemetryStatsdAddr:                         "drce87cy",
 		TelemetryStatsiteAddr:                       "HpFwKB8R",
-		TLSCipherSuites:                             []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA},
+		TLSCipherSuites:                             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
 		TLSMinVersion:                               "pAOWafkR",
 		TLSPreferServerCipherSuites:                 true,
 		TaggedAddresses: map[string]string{
@@ -3703,7 +3718,7 @@ func nonZero(name string, uniq map[interface{}]string, v interface{}) error {
 
 	isUnique := func(v interface{}) error {
 		if other := uniq[v]; other != "" {
-			return fmt.Errorf("%q and %q both use vaule %q", name, other, v)
+			return fmt.Errorf("%q and %q both use value %q", name, other, v)
 		}
 		uniq[v] = name
 		return nil
@@ -3998,6 +4013,7 @@ func TestSanitize(t *testing.T) {
     "DisableRemoteExec": false,
     "DisableUpdateCheck": false,
     "DiscardCheckOutput": false,
+    "DiscoveryMaxStale": "0s",
     "EnableACLReplication": false,
     "EnableAgentTLSForChecks": false,
     "EnableDebug": false,
@@ -4086,6 +4102,7 @@ func TestSanitize(t *testing.T) {
             "Checks": [],
             "EnableTagOverride": false,
             "ID": "",
+            "Meta": {},
             "Name": "foo",
             "Port": 0,
             "Tags": [],
