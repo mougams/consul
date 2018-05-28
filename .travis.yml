@@ -24,4 +24,4 @@ deploy:
   skip_cleanup: true
   on:
     repo: criteo-forks/consul
-tags: true
+    tags: true
