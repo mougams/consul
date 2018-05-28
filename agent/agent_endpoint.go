@@ -490,6 +490,91 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 	return nil, nil
 }
 
+func AgentHealthService(serviceId string, s *HTTPServer, resp http.ResponseWriter, req *http.Request) (int, string) {
+	checks := s.agent.State.Checks()
+	serviceChecks := make(api.HealthChecks, 0)
+	for _, c := range checks {
+		if c.ServiceID == serviceId || c.ServiceID == "" {
+			// TODO: harmonize struct.HealthCheck and api.HealthCheck (or at least extract conversion function)
+			healthCheck := &api.HealthCheck{
+				Node:        c.Node,
+				CheckID:     string(c.CheckID),
+				Name:        c.Name,
+				Status:      c.Status,
+				Notes:       c.Notes,
+				Output:      c.Output,
+				ServiceID:   c.ServiceID,
+				ServiceName: c.ServiceName,
+				ServiceTags: c.ServiceTags,
+			}
+			serviceChecks = append(serviceChecks, healthCheck)
+		}
+	}
+	status := serviceChecks.AggregatedStatus()
+	switch status {
+	case api.HealthWarning:
+		return http.StatusTooManyRequests, status
+	case api.HealthPassing:
+		return http.StatusOK, status
+	default:
+		return http.StatusServiceUnavailable, status
+	}
+}
+
+func (s *HTTPServer) AgentHealthServiceId(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+
+	// Pull out the service id (service id since there may be several instance of the same service on this host)
+	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/health/service/id/")
+	if serviceID == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service id")
+		return nil, nil
+	}
+	services := s.agent.State.Services()
+	for _, service := range services {
+		if service.ID == serviceID {
+			code, status := AgentHealthService(serviceID, s, resp, req)
+			resp.WriteHeader(code)
+			fmt.Fprint(resp, status)
+			return nil, nil
+		}
+	}
+	resp.WriteHeader(http.StatusNotFound)
+	fmt.Fprintf(resp, "ServiceId %s not found", serviceID)
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentHealthServiceName(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+
+	// Pull out the service name
+	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/health/service/name/")
+	if serviceName == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service name")
+		return nil, nil
+	}
+	code := http.StatusNotFound
+	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
+	services := s.agent.State.Services()
+	for _, service := range services {
+		if service.Service == serviceName {
+			scode, sstatus := AgentHealthService(service.ID, s, resp, req)
+			if code == 404 {
+				code = scode
+				status = sstatus
+			}
+			if code < scode {
+				code = scode
+				status = sstatus
+			}
+
+		}
+	}
+	resp.WriteHeader(code)
+	fmt.Fprint(resp, status)
+	return nil, nil
+}
+
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
