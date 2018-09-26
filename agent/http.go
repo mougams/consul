@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -41,6 +42,13 @@ type BadRequestError struct {
 
 func (e BadRequestError) Error() string {
 	return fmt.Sprintf("Bad request: %s", e.Reason)
+}
+
+type ForbiddenError struct {
+}
+
+func (e ForbiddenError) Error() string {
+	return "Access is restricted"
 }
 
 // HTTPServer provides an HTTP api for an agent.
@@ -791,4 +799,26 @@ func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *stri
 // parseWithoutResolvingProxyToken is a convenience method similar to parse except that it disables resolving proxy tokens
 func (s *HTTPServer) parseWithoutResolvingProxyToken(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	return s.parseInternal(resp, req, dc, b, false)
+}
+
+func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
+	allowed := s.agent.config.AllowWriteHTTPFrom
+	if len(allowed) == 0 {
+		return nil
+	}
+
+	ipStr, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse remote addr")
+	}
+
+	ip := net.ParseIP(ipStr)
+
+	for _, n := range allowed {
+		if n.Contains(ip) {
+			return nil
+		}
+	}
+
+	return ForbiddenError{}
 }
