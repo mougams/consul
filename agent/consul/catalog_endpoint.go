@@ -273,7 +273,12 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			}
 
 			if args.TagFilter {
-				return s.ServiceTagNodes(ws, args.ServiceName, args.ServiceTags)
+				tags := args.ServiceTags
+				// If there are no tags, fallback to the old singular tag field as this may be an RPC from a client running Consul < 1.3.0
+				if len(tags) == 0 && len(args.ServiceTag) > 0 {
+					tags = []string{args.ServiceTag}
+				}
+				return s.ServiceTagNodes(ws, args.ServiceName, tags)
 			}
 
 			return s.ServiceNodes(ws, args.ServiceName)
