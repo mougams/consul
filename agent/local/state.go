@@ -1079,7 +1079,7 @@ func (l *State) SyncChanges() error {
 			l.logger.Printf("[DEBUG] agent: Service %q in sync", id)
 		}
 		if err != nil {
-			return err
+			l.logger.Printf("[ERR] agent: Service sync: %s", err)
 		}
 	}
 
@@ -1100,7 +1100,7 @@ func (l *State) SyncChanges() error {
 			l.logger.Printf("[DEBUG] agent: Check %q in sync", id)
 		}
 		if err != nil {
-			return err
+			l.logger.Printf("[ERR] agent: Check sync: %s", err)
 		}
 	}
 
