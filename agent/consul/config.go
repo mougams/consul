@@ -33,6 +33,11 @@ const (
 	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
 	// amount of performance detuning that's possible.
 	MaxRaftMultiplier uint = 10
+
+	// DefaultSoftWatchLimit is used as a soft limit to cap how many watches we allow
+	// for a given blocking query. If this is exceeded, then we will use a
+	// higher-level watch that's less fine-grained.
+	DefaultSoftWatchLimit = 2048
 )
 
 var (
@@ -355,6 +360,11 @@ type Config struct {
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
+
+	// WatchSoftLimit is used as a soft limit to cap how many watches we allow
+	// for a given blocking query. If this is exceeded, then we will use a
+	// higher-level watch that's less fine-grained.
+	WatchSoftLimit int
 }
 
 // CheckProtocolVersion validates the protocol version.
