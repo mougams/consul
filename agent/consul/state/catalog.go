@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
 )
 
@@ -936,6 +936,11 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string)
 			results[service] = append(results[service], tag)
 		}
 	}
+
+	if len(ws) >= s.watchLimit {
+		s.warnSoftLimitReached("service by node meta")
+	}
+
 	return idx, results, nil
 }
 
@@ -1015,6 +1020,10 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 
 	// Get the table index.
 	idx := maxIndexForService(tx, serviceName, len(results) > 0, false)
+
+	if len(ws) >= s.watchLimit {
+		s.warnSoftLimitReached("service %s", serviceName)
+	}
 
 	return idx, results, nil
 }
@@ -1638,7 +1647,16 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 	}
 	ws.Add(iter.WatchCh())
 
-	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+	idx, checks, err := s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if len(ws) >= s.watchLimit {
+		s.warnSoftLimitReached("service %s", serviceName)
+	}
+
+	return idx, checks, nil
 }
 
 // ChecksInState is used to query the state store for all checks
@@ -2003,7 +2021,17 @@ func (s *Store) NodeInfo(ws memdb.WatchSet, node string) (uint64, structs.NodeDu
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
 	ws.Add(nodes.WatchCh())
-	return s.parseNodes(tx, ws, idx, nodes)
+
+	idx, nodeDump, err := s.parseNodes(tx, ws, idx, nodes)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if len(ws) >= s.watchLimit {
+		s.warnSoftLimitReached("node %s", node)
+	}
+
+	return idx, nodeDump, nil
 }
 
 // NodeDump is used to generate a dump of all nodes. This call is expensive
@@ -2085,4 +2113,13 @@ func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 		results = append(results, dump)
 	}
 	return idx, results, nil
+}
+
+func (s *Store) warnSoftLimitReached(f string, a ...interface{}) {
+	if s.watchLimitWarnCounter%100000 > 0 {
+		return
+	}
+
+	s.logger.Printf("[WARN] consul: exceeded soft watch limit of %d for %s, falling back to coarse grained watch", s.watchLimit, fmt.Sprintf(f, a...))
+	s.watchLimitWarnCounter++
 }

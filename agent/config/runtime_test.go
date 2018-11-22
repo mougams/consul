@@ -3103,7 +3103,8 @@ func TestFullConfig(t *testing.T) {
 			"performance": {
 				"leave_drain_time": "8265s",
 				"raft_multiplier": 5,
-				"rpc_hold_timeout": "15707s"
+				"rpc_hold_timeout": "15707s",
+				"watch_soft_limit": ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
 			},
 			"pid_file": "43xN80Km",
 			"ports": {
@@ -3430,8 +3431,7 @@ func TestFullConfig(t *testing.T) {
 					"key": "sl3Dffu7",
 					"args": ["dltjDJ2a", "flEa7C2d"]
 				}
-			],
-			"watch_soft_limit": ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
+			]
 		}`,
 		"hcl": `
 			acl_agent_master_token = "furuQD0b"
@@ -3658,6 +3658,7 @@ func TestFullConfig(t *testing.T) {
 				leave_drain_time = "8265s"
 				raft_multiplier = 5
 				rpc_hold_timeout = "15707s"
+				watch_soft_limit = ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
 			}
 			pid_file = "43xN80Km"
 			ports {
@@ -3982,8 +3983,7 @@ func TestFullConfig(t *testing.T) {
 				datacenter = "fYrl3F5d"
 				key = "sl3Dffu7"
 				args = ["dltjDJ2a", "flEa7C2d"]
-			}],
-			watch_soft_limit = ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
+			}]
 		`}
 
 	tail := map[string][]Source{
