@@ -20,11 +20,11 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/cache-types"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -42,8 +42,8 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-uuid"
+	multierror "github.com/hashicorp/go-multierror"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -1911,15 +1911,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 	snap := a.snapshotCheckState()
 	defer a.restoreCheckState(snap)
 
-	// Add the service
-	a.State.AddService(service, token)
-
-	// Persist the service to a file
-	if persist && a.config.DataDir != "" {
-		if err := a.persistService(service); err != nil {
-			return err
-		}
-	}
+	var checks []*structs.HealthCheck
 
 	// Create an associated health check
 	for i, chkType := range chkTypes {
@@ -1947,12 +1939,79 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		if chkType.Status != "" {
 			check.Status = chkType.Status
 		}
-		if err := a.AddCheck(check, chkType, persist, token, source); err != nil {
+
+		checks = append(checks, check)
+	}
+
+	// cleanup, store the ids of services and checks that weren't previously
+	// registered so we clean them up if somthing fails halfway through the
+	// process.
+	var cleanupServices []string
+	var cleanupChecks []types.CheckID
+
+	if s := a.State.Service(service.ID); s == nil {
+		cleanupServices = append(cleanupServices, service.ID)
+	}
+
+	for _, check := range checks {
+		if c := a.State.Check(check.CheckID); c == nil {
+			cleanupChecks = append(cleanupChecks, check.CheckID)
+		}
+	}
+
+	err := a.State.AddServiceWithChecks(service, checks, token)
+	if err != nil {
+		a.cleanupRegistration(cleanupServices, cleanupChecks)
+		return err
+	}
+
+	for i := range checks {
+		if err := a.addCheck(checks[i], chkTypes[i], service, persist, token, source); err != nil {
+			a.cleanupRegistration(cleanupServices, cleanupChecks)
+			return err
+		}
+
+		if persist && a.config.DataDir != "" {
+			if err := a.persistCheck(checks[i], chkTypes[i]); err != nil {
+				a.cleanupRegistration(cleanupServices, cleanupChecks)
+				return err
+
+			}
+		}
+	}
+
+	// Persist the service to a file
+	if persist && a.config.DataDir != "" {
+		if err := a.persistService(service); err != nil {
+			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
 	}
 
 	return nil
+}
+
+// cleanupRegistration is called on  registration error to ensure no there are no
+// leftovers after a partial failure
+func (a *Agent) cleanupRegistration(serviceIDs []string, checksIDs []types.CheckID) {
+	for _, s := range serviceIDs {
+		if err := a.State.RemoveService(s); err != nil {
+			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to remove service %s: %s", s, err)
+		}
+		if err := a.purgeService(s); err != nil {
+			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge service %s file: %s", s, err)
+		}
+	}
+
+	for _, c := range checksIDs {
+		a.cancelCheckMonitors(c)
+		if err := a.State.RemoveCheck(c); err != nil {
+			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to remove check %s: %s", c, err)
+		}
+		if err := a.purgeCheck(c); err != nil {
+			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge check %s file: %s", c, err)
+		}
+	}
 }
 
 // RemoveService is used to remove a service entry.
@@ -2018,6 +2077,44 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
 func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType, persist bool, token string, source configSource) error {
+	var service *structs.NodeService
+
+	if check.ServiceID != "" {
+		service = a.State.Service(check.ServiceID)
+		if service == nil {
+			return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
+		}
+	}
+
+	// snapshot the current state of the health check to avoid potential flapping
+	existing := a.State.Check(check.CheckID)
+	defer func() {
+		if existing != nil {
+			a.State.UpdateCheck(check.CheckID, existing.Status, existing.Output)
+		}
+	}()
+
+	err := a.addCheck(check, chkType, service, persist, token, source)
+	if err != nil {
+		a.State.RemoveCheck(check.CheckID)
+		return err
+	}
+
+	// Add to the local state for anti-entropy
+	err = a.State.AddCheck(check, token)
+	if err != nil {
+		return err
+	}
+
+	// Persist the check
+	if persist && a.config.DataDir != "" {
+		return a.persistCheck(check, chkType)
+	}
+
+	return nil
+}
+
+func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType, service *structs.NodeService, persist bool, token string, source configSource) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -2039,12 +2136,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	if check.ServiceID != "" {
-		s := a.State.Service(check.ServiceID)
-		if s == nil {
-			return fmt.Errorf("ServiceID %q does not exist", check.ServiceID)
-		}
-		check.ServiceName = s.Service
-		check.ServiceTags = s.Tags
+		check.ServiceName = service.Service
+		check.ServiceTags = service.Tags
 	}
 
 	a.checkLock.Lock()
@@ -2263,18 +2356,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		} else {
 			delete(a.checkReapAfter, check.CheckID)
 		}
-	}
-
-	// Add to the local state for anti-entropy
-	err := a.State.AddCheck(check, token)
-	if err != nil {
-		a.cancelCheckMonitors(check.CheckID)
-		return err
-	}
-
-	// Persist the check
-	if persist && a.config.DataDir != "" {
-		return a.persistCheck(check, chkType)
 	}
 
 	return nil
