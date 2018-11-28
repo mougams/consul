@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
@@ -2725,7 +2726,8 @@ func TestFullConfig(t *testing.T) {
 			"performance": {
 				"leave_drain_time": "8265s",
 				"raft_multiplier": 5,
-				"rpc_hold_timeout": "15707s"
+				"rpc_hold_timeout": "15707s",
+				"watch_soft_limit": ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
 			},
 			"pid_file": "43xN80Km",
 			"ports": {
@@ -3227,6 +3229,7 @@ func TestFullConfig(t *testing.T) {
 				leave_drain_time = "8265s"
 				raft_multiplier = 5
 				rpc_hold_timeout = "15707s"
+				watch_soft_limit = ` + fmt.Sprint(consul.DefaultSoftWatchLimit) + `
 			}
 			pid_file = "43xN80Km"
 			ports {
@@ -4115,6 +4118,7 @@ func TestFullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
+		WatchSoftLimit: consul.DefaultSoftWatchLimit,
 	}
 
 	warns := []string{
@@ -4691,6 +4695,7 @@ func TestSanitize(t *testing.T) {
 		"VersionPrerelease": "",
 		"Watches": [],
 		"AllowWriteHTTPFrom": []
+		"WatchSoftLimit": 0
 	}`
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	if err != nil {
