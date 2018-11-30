@@ -1916,7 +1916,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 		svc := service.(*structs.ServiceNode)
 		serviceExists = true
 		if !serviceTagsFilter(svc, tags) {
-			results = append(results, svc)
+			results = append(results, service.(*structs.ServiceNode))
 		}
 	}
 
