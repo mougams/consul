@@ -1,6 +1,7 @@
 package state
 
 import (
+	"container/list"
 	"fmt"
 	"strings"
 
@@ -344,19 +345,89 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 	return s.populateCheckServiceNodesForNode(tx, idx, req.Node)
 }
 
-func (s *Store) populateCheckServiceNodesForNode(tx *memdb.Txn, idx uint64, node string) error {
+func (s *Store) populateCheckServiceNodesForNode(tx *memdb.Txn, idx uint64, nodeID string) error {
 	// Iterate all services on the node and fix up their denormalised results
-	services, err := tx.Get("services", "node", node)
+	services, err := tx.Get("services", "node", nodeID)
 	if err != nil {
 		return fmt.Errorf("failed service lookup: %s", err)
 	}
-	sns := make(structs.ServiceNodes, 0, 128)
-	for service := services.Next(); service != nil; service = services.Next() {
-		svc := service.(*structs.ServiceNode)
-		sns = append(sns, svc)
+
+	// Fetch the node and the node's checks just once
+	n, err := tx.First("nodes", "id", nodeID)
+	if err != nil {
+		return fmt.Errorf("failed node lookup: %s", err)
 	}
 
-	return s.populateCheckServiceNodes(tx, idx, sns)
+	if n == nil {
+		return ErrMissingNode
+	}
+	node := n.(*structs.Node)
+
+	// Add the node-level checks. These always apply to any
+	// service on the node.
+	var nodeChecks structs.HealthChecks
+	iter, err := tx.Get("checks", "node_service_check", nodeID, false)
+	if err != nil {
+		return err
+	}
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		nodeChecks = append(nodeChecks, check.(*structs.HealthCheck))
+	}
+
+	// We can find all service-specific checks for this node with a single node
+	// lookup rather than N node_service lookups which is a lot more efficient for
+	// lots of services on a node since we have to visit them all anyway.
+	iter, err = tx.Get("checks", "node", nodeID)
+	if err != nil {
+		return err
+	}
+
+	// Build a local map of the service checks to avoid N index lookups. We
+	// populate them into a set of linked lists to save allocation and
+	// reallocation using slices (benchmarks quicker).
+	serviceChecks := make(map[string]*list.List)
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		hc := check.(*structs.HealthCheck)
+		l := serviceChecks[hc.ServiceID]
+		if l == nil {
+			l = list.New()
+			serviceChecks[hc.ServiceID] = l
+		}
+		l.PushBack(hc)
+	}
+
+	// Now fixup each service's pointers
+	for svc := services.Next(); svc != nil; svc = services.Next() {
+		sn := svc.(*structs.ServiceNode)
+
+		sCheckLen := 0
+		sChecks := serviceChecks[sn.ServiceID]
+		if sChecks != nil {
+			sCheckLen = sChecks.Len()
+		}
+
+		checks := make(structs.HealthChecks, 0, len(nodeChecks)+sCheckLen)
+
+		// Add node checks
+		checks = append(checks, nodeChecks...)
+
+		// Add the service-specific checks.
+		if sChecks != nil {
+			for elem := sChecks.Front(); elem != nil; elem = elem.Next() {
+				checks = append(checks, elem.Value.(*structs.HealthCheck))
+			}
+		}
+
+		// Populate the ServiceNode
+		sn.InternalCheckServiceNode.Node = node
+		sn.InternalCheckServiceNode.Service = sn.ToNodeService()
+		sn.InternalCheckServiceNode.Checks = checks
+
+		if err := tx.Insert("index", &IndexEntry{checkServiceIndexName(sn.ServiceName), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
+	}
+	return nil
 }
 
 // EnsureNode is used to upsert node registration or modification.
