@@ -3558,6 +3558,15 @@ func (a *Agent) registerCache() {
 		// Prepared queries don't support blocking
 		Refresh: false,
 	})
+
+	a.cache.RegisterType(cachetype.NodeServicesName, &cachetype.NodeServices{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
 }
 
 // defaultProxyCommand returns the default Connect managed proxy command.
