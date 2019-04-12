@@ -118,6 +118,10 @@ type Config struct {
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr
 
+	// EnableServerGRPC controls wether GRPC can be used for server RPC
+	// communications
+	EnableGRPC bool
+
 	// RPCAdvertise is the address that is advertised to other nodes for
 	// the RPC endpoint. This can differ from the RPC address, if for example
 	// the RPCAddr is unspecified "0.0.0.0:8300", but this address must be
@@ -446,6 +450,7 @@ func DefaultConfig() *Config {
 		Datacenter:               DefaultDC,
 		NodeName:                 hostname,
 		RPCAddr:                  DefaultRPCAddr,
+		EnableGRPC:               true,
 		RaftConfig:               raft.DefaultConfig(),
 		SerfLANConfig:            lib.SerfDefaultConfig(),
 		SerfWANConfig:            lib.SerfDefaultConfig(),
@@ -461,7 +466,6 @@ func DefaultConfig() *Config {
 		ACLReplicationApplyLimit: 100, // ops / sec
 		TombstoneTTL:             15 * time.Minute,
 		TombstoneTTLGranularity:  30 * time.Second,
-		SessionTTLMin:            10 * time.Second,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

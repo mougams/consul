@@ -952,6 +952,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.SerfWANConfig = nil
 	}
 
+	base.EnableGRPC = a.config.ServerEnableGRPC
 	base.RPCAddr = a.config.RPCBindAddr
 	base.RPCAdvertise = a.config.RPCAdvertiseAddr
 
