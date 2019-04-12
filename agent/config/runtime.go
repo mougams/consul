@@ -878,6 +878,12 @@ type RuntimeConfig struct {
 	// hcl: bind_addr = string ports { server = int }
 	RPCBindAddr *net.TCPAddr
 
+	// GRPCBindAddr is the TCP address Consul will bind to for its GRPC endpoint.
+	// By default this is the bind address on the default GRPC Server port.
+	//
+	// hcl: bind_addr = string ports { sever_grpc = int }
+	GRPCBindAddr *net.TCPAddr
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.

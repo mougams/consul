@@ -22,6 +22,7 @@ import (
 const (
 	DefaultDC          = "dc1"
 	DefaultRPCPort     = 8300
+	DefaultGRPCPort    = 8310
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
 
@@ -41,7 +42,8 @@ const (
 )
 
 var (
-	DefaultRPCAddr = &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: DefaultRPCPort}
+	DefaultRPCAddr  = &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: DefaultRPCPort}
+	DefaultGRPCAddr = &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: DefaultGRPCPort}
 
 	// ProtocolVersionMap is the mapping of Consul protocol versions
 	// to Serf protocol versions. We mask the Serf protocols using
@@ -117,6 +119,10 @@ type Config struct {
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr
+
+	// GRPCAddr is the GRPC address used by Consul. This should be reachable
+	// by the WAN and LAN
+	GRPCAddr *net.TCPAddr
 
 	// RPCAdvertise is the address that is advertised to other nodes for
 	// the RPC endpoint. This can differ from the RPC address, if for example
@@ -446,6 +452,7 @@ func DefaultConfig() *Config {
 		Datacenter:               DefaultDC,
 		NodeName:                 hostname,
 		RPCAddr:                  DefaultRPCAddr,
+		GRPCAddr:                 DefaultGRPCAddr,
 		RaftConfig:               raft.DefaultConfig(),
 		SerfLANConfig:            lib.SerfDefaultConfig(),
 		SerfWANConfig:            lib.SerfDefaultConfig(),

@@ -29,6 +29,7 @@ type Server struct {
 	Datacenter   string
 	Segment      string
 	Port         int
+	GRPCPort     int
 	SegmentAddrs map[string]string
 	SegmentPorts map[string]int
 	WanJoinPort  int
@@ -92,6 +93,16 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return false, nil
+	}
+
+	grpcPort := 0
+	grpcPortStr, ok := m.Tags["port_grpc"]
+	if ok {
+		port, err := strconv.Atoi(grpcPortStr)
+		if err != nil {
+			return false, nil
+		}
+		grpcPort = port
 	}
 
 	var acls structs.ACLMode
@@ -160,6 +171,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		Datacenter:   datacenter,
 		Segment:      segment,
 		Port:         port,
+		GRPCPort:     grpcPort,
 		SegmentAddrs: segmentAddrs,
 		SegmentPorts: segmentPorts,
 		WanJoinPort:  wanJoinPort,

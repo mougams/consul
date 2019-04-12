@@ -357,6 +357,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
+	grpcServerPort := b.portVal("ports.server_grpc", c.Ports.ServerGRPC)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -438,6 +439,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	// derive other bind addresses from the bindAddr
 	rpcBindAddr := b.makeTCPAddr(bindAddr, nil, serverPort)
+	grpcBindAddr := b.makeTCPAddr(bindAddr, nil, grpcServerPort)
 	serfBindAddrLAN := b.makeTCPAddr(b.expandFirstIP("serf_lan", c.SerfBindAddrLAN), bindAddr, serfPortLAN)
 
 	// Only initialize serf WAN bind address when its enabled
@@ -818,6 +820,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		PrimaryDatacenter:                       primaryDatacenter,
 		RPCAdvertiseAddr:                        rpcAdvertiseAddr,
 		RPCBindAddr:                             rpcBindAddr,
+		GRPCBindAddr:                            grpcBindAddr,
 		RPCHoldTimeout:                          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
 		RPCMaxBurst:                             b.intVal(c.Limits.RPCMaxBurst),
 		RPCProtocol:                             b.intVal(c.RPCProtocol),

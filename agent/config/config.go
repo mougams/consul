@@ -604,6 +604,7 @@ type Ports struct {
 	SerfLAN        *int `json:"serf_lan,omitempty" hcl:"serf_lan" mapstructure:"serf_lan"`
 	SerfWAN        *int `json:"serf_wan,omitempty" hcl:"serf_wan" mapstructure:"serf_wan"`
 	Server         *int `json:"server,omitempty" hcl:"server" mapstructure:"server"`
+	ServerGRPC     *int `json:"server_grpc,omitempty" hcl:"server_grpc" mapstructure:"server_grpc"`
 	GRPC           *int `json:"grpc,omitempty" hcl:"grpc" mapstructure:"grpc"`
 	ProxyMinPort   *int `json:"proxy_min_port,omitempty" hcl:"proxy_min_port" mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`

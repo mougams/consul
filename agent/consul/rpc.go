@@ -230,8 +230,7 @@ CHECK_LEADER:
 	// Handle the case of a known leader
 	rpcErr := structs.ErrNoLeader
 	if leader != nil {
-		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.Addr,
-			leader.Version, method, leader.UseTLS, args, reply)
+		rpcErr = s.rpcClient.Call(s.config.Datacenter, leader, method, args, reply)
 		if rpcErr != nil && canRetry(info, rpcErr) {
 			goto RETRY
 		}
@@ -289,7 +288,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 	metrics.IncrCounterWithLabels([]string{"rpc", "cross-dc"}, 1,
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
-	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
+	if err := s.rpcClient.Call(dc, server, method, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
 		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
 		return err

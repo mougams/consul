@@ -56,6 +56,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.Tags["raft_vsn"] = fmt.Sprintf("%d", s.config.RaftConfig.ProtocolVersion)
 	conf.Tags["build"] = s.config.Build
+	if s.config.GRPCAddr != nil {
+		conf.Tags["port_grpc"] = fmt.Sprintf("%d", s.config.GRPCAddr.Port)
+	}
 	addr := listener.Addr().(*net.TCPAddr)
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
@@ -286,8 +289,8 @@ func (s *Server) maybeBootstrap() {
 
 		// Retry with exponential backoff to get peer status from this server
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
-			if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
-				"Status.Peers", server.UseTLS, &struct{}{}, &peers); err != nil {
+			if err := s.rpcClient.Call(s.config.Datacenter, &server,
+				"Status.Peers", &struct{}{}, &peers); err != nil {
 				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
 				s.logger.Printf("[ERR] consul: Failed to confirm peer status for %s: %v. Retrying in "+
 					"%v...", server.Name, err, nextRetry.String())

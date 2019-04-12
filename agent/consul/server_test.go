@@ -41,7 +41,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.Get(3)
+	ports := freeport.Get(4)
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -52,6 +52,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	// set to the listen address unless it was set in the configuration.
 	// In that case get the address from srv.Listener.Addr().
 	config.RPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: ports[0]}
+	config.GRPCAddr = &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: ports[3]}
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
@@ -201,7 +202,8 @@ func newServer(c *Config) (*Server, error) {
 	// todo(fs): but for now it is a shortcut to avoid fixing
 	// todo(fs): tests which depend on that value. They should
 	// todo(fs): just get the listener address instead.
-	c.RPCAddr = srv.Listener.Addr().(*net.TCPAddr)
+	c.RPCAddr = srv.RPCListener.Addr().(*net.TCPAddr)
+	c.GRPCAddr = srv.GRPCListener.Addr().(*net.TCPAddr)
 	return srv, nil
 }
 
@@ -862,7 +864,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 	if leader == nil {
 		t.Fatal("no leader")
 	}
-	return s2.connPool.Ping(leader.Datacenter, leader.Addr, leader.Version, leader.UseTLS)
+	return s2.rpcClient.Ping(leader.Datacenter, leader.Addr, leader.Version, leader.UseTLS)
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {

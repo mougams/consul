@@ -300,12 +300,13 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(tls bool) config.Source {
-	ports := freeport.Get(6)
+	ports := freeport.Get(7)
 	if tls {
 		ports[1] = -1
 	} else {
 		ports[2] = -1
 	}
+
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",
@@ -317,6 +318,7 @@ func randomPortsSource(tls bool) config.Source {
 				serf_lan = ` + strconv.Itoa(ports[3]) + `
 				serf_wan = ` + strconv.Itoa(ports[4]) + `
 				server = ` + strconv.Itoa(ports[5]) + `
+				server_grpc = ` + strconv.Itoa(ports[6]) + `
 			}
 		`,
 	}
