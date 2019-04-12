@@ -234,7 +234,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 						ServiceName: check.ServiceName,
 						ServiceTags: check.ServiceTags,
 						Definition: structs.HealthCheckDefinition{
-							HTTP:                           check.Definition.HTTP,
+							HTTP:                           structs.Headers(check.Definition.HTTP),
 							TLSSkipVerify:                  check.Definition.TLSSkipVerify,
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
