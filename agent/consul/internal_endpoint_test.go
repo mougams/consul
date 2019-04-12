@@ -378,3 +378,51 @@ func TestInternal_EventFire_Token(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+<<<<<<< HEAD
+=======
+
+func TestInternal_ServiceDump(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	doRequest := func(t *testing.T, filter string) []structs.CheckServiceNode {
+		t.Helper()
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: filter},
+		}
+
+		var out structs.IndexedCheckServiceNodes
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
+		return out.Nodes
+	}
+
+	// Run the tests against the test server
+	t.Run("No Filter", func(t *testing.T) {
+		nodes := doRequest(t, "")
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes, 9)
+	})
+
+	t.Run("Filter Node foo and service version 1", func(t *testing.T) {
+		nodes := doRequest(t, "Node.Node == foo and Service.Meta.version == 1")
+		require.Len(t, nodes, 1)
+		require.Equal(t, "redis", nodes[0].Service.Service)
+		require.Equal(t, "redisV1", nodes[0].Service.ID)
+	})
+
+	t.Run("Filter service web", func(t *testing.T) {
+		nodes := doRequest(t, "Service.Service == web")
+		require.Len(t, nodes, 3)
+	})
+}
+>>>>>>> dbec1afe2... [grpc] Convert Health.ServiceNodes request and response to proto
