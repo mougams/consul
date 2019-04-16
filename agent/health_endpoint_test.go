@@ -420,7 +420,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	assertIndex(t, resp)
 
 	// Should be 1 health check for consul
-	nodes := obj.(structs.CheckServiceNodes)
+	nodes := obj.([]structs.CheckServiceNode)
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
@@ -435,7 +435,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list
-	nodes = obj.(structs.CheckServiceNodes)
+	nodes = obj.([]structs.CheckServiceNode)
 	if nodes == nil || len(nodes) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
@@ -465,7 +465,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list for checks
-	nodes = obj.(structs.CheckServiceNodes)
+	nodes = obj.([]structs.CheckServiceNode)
 	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
@@ -477,7 +477,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
 		require.NoError(err)
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		assert.Len(nodes, 1)
 
 		// Should be a cache miss
@@ -490,7 +490,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthServiceNodes(resp, req)
 		require.NoError(err)
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		assert.Len(nodes, 1)
 
 		// Should be a cache HIT now!
@@ -512,7 +512,7 @@ func TestHealthServiceNodes(t *testing.T) {
 			obj, err := a.srv.HealthServiceNodes(resp, req)
 			r.Check(err)
 
-			nodes := obj.(structs.CheckServiceNodes)
+			nodes := obj.([]structs.CheckServiceNode)
 			if len(nodes) != 2 {
 				r.Fatalf("Want 2 nodes")
 			}
@@ -543,7 +543,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list
-	nodes := obj.(structs.CheckServiceNodes)
+	nodes := obj.([]structs.CheckServiceNode)
 	if nodes == nil || len(nodes) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
@@ -574,7 +574,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list for checks
-	nodes = obj.(structs.CheckServiceNodes)
+	nodes = obj.([]structs.CheckServiceNode)
 	if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
@@ -618,7 +618,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	assertIndex(t, resp)
-	nodes := obj.(structs.CheckServiceNodes)
+	nodes := obj.([]structs.CheckServiceNode)
 	if len(nodes) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
@@ -646,7 +646,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 		assertIndex(t, resp)
-		nodes = obj.(structs.CheckServiceNodes)
+		nodes = obj.([]structs.CheckServiceNode)
 		if len(nodes) != 2 {
 			r.Fatalf("bad: %v", obj)
 		}
@@ -695,7 +695,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %v", obj)
 		}
@@ -712,7 +712,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %v", obj)
 		}
@@ -730,7 +730,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 
 		// Should be 1 consul, it's unhealthy, but we specifically asked for
 		// everything.
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %v", obj)
 		}
@@ -814,7 +814,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	assertIndex(t, resp1)
 
 	// Expect that DC1 gives us a WAN address (since the node is in DC2).
-	nodes1 := obj1.(structs.CheckServiceNodes)
+	nodes1 := obj1.([]structs.CheckServiceNode)
 	if len(nodes1) != 1 {
 		t.Fatalf("bad: %v", obj1)
 	}
@@ -832,7 +832,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	assertIndex(t, resp2)
 
 	// Expect that DC2 gives us a private address (since the node is in DC2).
-	nodes2 := obj2.(structs.CheckServiceNodes)
+	nodes2 := obj2.([]structs.CheckServiceNode)
 	if len(nodes2) != 1 {
 		t.Fatalf("bad: %v", obj2)
 	}
@@ -863,7 +863,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list for checks
-	nodes := obj.(structs.CheckServiceNodes)
+	nodes := obj.([]structs.CheckServiceNode)
 	assert.Len(nodes, 1)
 	assert.Len(nodes[0].Checks, 0)
 }
@@ -895,7 +895,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		assert.Len(nodes, 0)
 	})
 
@@ -909,7 +909,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		assert.Len(nodes, 0)
 	})
 
@@ -923,7 +923,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 1
-		nodes := obj.(structs.CheckServiceNodes)
+		nodes := obj.([]structs.CheckServiceNode)
 		assert.Len(nodes, 1)
 	})
 
@@ -943,7 +943,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 
 func TestFilterNonPassing(t *testing.T) {
 	t.Parallel()
-	nodes := structs.CheckServiceNodes{
+	nodes := []structs.CheckServiceNode{
 		structs.CheckServiceNode{
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{

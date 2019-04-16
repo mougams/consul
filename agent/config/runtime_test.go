@@ -124,6 +124,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
 				rt.RPCAdvertiseAddr = tcpAddr("1.2.3.4:8300")
 				rt.RPCBindAddr = tcpAddr("1.2.3.4:8300")
+				rt.GRPCBindAddr = tcpAddr("1.2.3.4:8310")
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.SerfBindAddrLAN = tcpAddr("1.2.3.4:8301")
@@ -276,6 +277,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.LogLevel = "DEBUG"
 				rt.RPCAdvertiseAddr = tcpAddr("127.0.0.1:8300")
 				rt.RPCBindAddr = tcpAddr("127.0.0.1:8300")
+				rt.GRPCBindAddr = tcpAddr("127.0.0.1:8310")
 				rt.SerfAdvertiseAddrLAN = tcpAddr("127.0.0.1:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("127.0.0.1:8302")
 				rt.SerfBindAddrLAN = tcpAddr("127.0.0.1:8301")
@@ -781,6 +783,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.BindAddr = ipAddr("::")
 				rt.RPCAdvertiseAddr = tcpAddr("[dead:beef::1]:8300")
 				rt.RPCBindAddr = tcpAddr("[::]:8300")
+				rt.GRPCBindAddr = tcpAddr("[::]:8310")
 				rt.SerfAdvertiseAddrLAN = tcpAddr("[dead:beef::1]:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("[dead:beef::1]:8302")
 				rt.SerfBindAddrLAN = tcpAddr("[::]:8301")
@@ -3115,6 +3118,7 @@ func TestFullConfig(t *testing.T) {
 				"http": 7999,
 				"https": 15127,
 				"server": 3757,
+				"server_grpc": 8151,
 				"grpc": 4881,
 				"proxy_min_port": 2000,
 				"proxy_max_port": 3000,
@@ -3673,6 +3677,7 @@ func TestFullConfig(t *testing.T) {
 				https = 15127
 				server = 3757
 				grpc = 4881
+				server_grpc = 8151,
 				proxy_min_port = 2000
 				proxy_max_port = 3000
 				sidecar_min_port = 8888
@@ -4302,6 +4307,7 @@ func TestFullConfig(t *testing.T) {
 		PrimaryDatacenter:                "ejtmd43d",
 		RPCAdvertiseAddr:                 tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:                      tcpAddr("16.99.34.17:3757"),
+		GRPCBindAddr:                     tcpAddr("16.99.34.17:8151"),
 		RPCHoldTimeout:                   15707 * time.Second,
 		RPCProtocol:                      30793,
 		RPCRateLimit:                     12029.43,
@@ -5104,6 +5110,7 @@ func TestSanitize(t *testing.T) {
 		"PrimaryDatacenter": "",
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
+		"GRPCBindAddr": "",
 		"RPCHoldTimeout": "0s",
 		"RPCMaxBurst": 0,
 		"RPCProtocol": 0,

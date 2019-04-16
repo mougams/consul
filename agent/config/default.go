@@ -114,6 +114,7 @@ func DefaultSource() Source {
 			serf_lan = ` + strconv.Itoa(consul.DefaultLANSerfPort) + `
 			serf_wan = ` + strconv.Itoa(consul.DefaultWANSerfPort) + `
 			server = ` + strconv.Itoa(consul.DefaultRPCPort) + `
+			server_grpc = ` + strconv.Itoa(consul.DefaultGRPCPort) + `
 			proxy_min_port = 20000
 			proxy_max_port = 20255
 			sidecar_min_port = 21000
