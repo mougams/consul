@@ -162,7 +162,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			return index, func(index uint64, rawReply interface{}) error {
 				reply := rawReply.(*structs.IndexedCheckServiceNodes)
 				// copy the slice to ensure requests filtering / sorting dont affect each others
-				replyNodes := make(structs.CheckServiceNodes, len(nodes))
+				replyNodes := make([]structs.CheckServiceNode, len(nodes))
 				copy(replyNodes, nodes)
 				reply.Index, reply.Nodes = index, replyNodes
 				return nil
