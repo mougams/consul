@@ -437,7 +437,7 @@ func (d *DNSServer) nameservers(edns bool, maxRecursionLevel int) (ns []dns.RR, 
 	}
 
 	// shuffle the nodes to randomize the output
-	out.Nodes.Shuffle()
+	structs.ShuffleCheckServiceNodes(out.Nodes)
 
 	for _, o := range out.Nodes {
 		name, addr, dc := o.Node.Node, o.Node.Address, o.Node.Datacenter
@@ -1101,9 +1101,9 @@ func (d *DNSServer) lookupServiceNodes(datacenter, service, tag string, connect 
 
 	// Filter out any service nodes due to health checks
 	// We copy the slice to avoid modifying the result if it comes from the cache
-	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
+	nodes := make([]structs.CheckServiceNode, len(out.Nodes))
 	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(d.config.OnlyPassing)
+	out.Nodes = structs.FilterCheckServiceNodes(nodes, d.config.OnlyPassing)
 	return out, nil
 }
 
@@ -1124,7 +1124,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, conn
 	}
 
 	// Perform a random shuffle
-	out.Nodes.Shuffle()
+	structs.ShuffleCheckServiceNodes(out.Nodes)
 
 	// Determine the TTL
 	ttl, _ := d.GetTTLForService(service)
@@ -1301,7 +1301,7 @@ RPC:
 }
 
 // serviceNodeRecords is used to add the node records for a service lookup
-func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
+func (d *DNSServer) serviceNodeRecords(dc string, nodes []structs.CheckServiceNode, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
@@ -1423,7 +1423,7 @@ func findWeight(node structs.CheckServiceNode) int {
 }
 
 // serviceARecords is used to add the SRV records for a service lookup
-func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
+func (d *DNSServer) serviceSRVRecords(dc string, nodes []structs.CheckServiceNode, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
 	handled := make(map[string]struct{})
 	edns := req.IsEdns0() != nil
 
