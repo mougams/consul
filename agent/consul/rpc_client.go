@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/tlsutil"
@@ -61,27 +62,49 @@ func NewRPCClient(logger *log.Logger, config *Config, tlsConfigurator *tlsutil.C
 	}
 }
 
+// Call swith between GRPC/RPC calls
 func (c *RPCClient) Call(dc string, server *metadata.Server, method string, args, reply interface{}) error {
-	if !server.GRPCEnabled || !grpcAbleEndpoints[method] {
-		c.logger.Printf("[TRACE] Using RPC for method %s", method)
-		return c.rpcPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply)
+	isRPC := !server.GRPCEnabled || !grpcAbleEndpoints[method]
+	var methodKind = "grpc"
+	if isRPC {
+		methodKind = "rpc"
 	}
 
-	conn, err := c.grpcConn(server)
+	var err error
+
+	defer func() {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "dispatcher", "method"}, 1,
+			[]metrics.Label{{Name: "method", Value: method},
+				{Name: "kind", Value: methodKind},
+				{Name: "dc", Value: dc},
+				{Name: "destination", Value: server.Addr.String()},
+				{Name: "error", Value: fmt.Sprintf("%v", err != nil)},
+			})
+	}()
+
+	if isRPC {
+		err = c.rpcPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply)
+		return err
+	}
+
+	var conn *grpc.ClientConn
+
+	conn, err = c.grpcConn(server)
 	if err != nil {
 		return err
 	}
 
-	c.logger.Printf("[TRACE] Using GRPC for method %s", method)
-	return conn.Invoke(context.Background(), c.grpcPath(method), args, reply)
+	err = conn.Invoke(context.Background(), c.grpcPath(method), args, reply)
+	return err
 }
 
+// Ping ensure the remote server is alive
 func (c *RPCClient) Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error) {
 	return c.rpcPool.Ping(dc, addr, version, useTLS)
 }
 
+// Shutdown Close the connection pool
 func (c *RPCClient) Shutdown() error {
-	// Close the connection pool
 	c.rpcPool.Shutdown()
 	return nil
 }
