@@ -95,7 +95,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		return false, nil
 	}
 
-	grpcEnabled := m.Tags["grpc_enabled"] == "true"
+	grpcEnabled := m.Tags["criteo_grpc_enabled"] == "true"
 
 	var acls structs.ACLMode
 	if aclMode, ok := m.Tags["acls"]; ok {

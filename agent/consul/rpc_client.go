@@ -27,7 +27,7 @@ func dialGRPC(addr string, _ time.Duration) (net.Conn, error) {
 		return nil, err
 	}
 
-	_, err = conn.Write([]byte{pool.RPCGRPC})
+	_, err = conn.Write([]byte{pool.RPCCriteoGRPC})
 	if err != nil {
 		return nil, err
 	}
