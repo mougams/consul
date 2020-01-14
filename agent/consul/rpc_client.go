@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	math "math"
 	"net"
 	"strings"
 	"sync"
@@ -138,6 +139,7 @@ func (c *RPCClient) grpcConn(server *metadata.Server) (*grpc.ClientConn, error) 
 		grpc.WithDialer(dialGRPC),
 		grpc.WithDisableRetry(),
 		grpc.WithBlock(),
+		grpc.WithMaxMsgSize(math.MaxInt64),
 	)
 	existing.conn = conn
 	existing.err = err
