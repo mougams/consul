@@ -17,16 +17,17 @@ require (
 	github.com/coredns/coredns v1.1.2
 	github.com/digitalocean/godo v1.10.0 // indirect
 	github.com/docker/go-connections v0.3.0
-	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
+	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/envoyproxy/go-control-plane v0.8.0
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/gogo/googleapis v1.1.0
-	github.com/gogo/protobuf v1.2.1
+	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/hashicorp/consul/api v1.3.0
 	github.com/hashicorp/consul/sdk v0.3.0
 	github.com/hashicorp/go-bexpr v0.1.2
+	github.com/hashicorp/go-bindata v3.0.7+incompatible // indirect
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-connlimit v0.1.0
@@ -40,7 +41,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
-	github.com/hashicorp/go-version v1.1.0
+	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
@@ -54,11 +55,14 @@ require (
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6
+	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
+	github.com/kisielk/errcheck v1.4.0 // indirect
 	github.com/kr/text v0.1.0
 	github.com/miekg/dns v1.1.26
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.0.0
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mitchellh/reflectwalk v1.0.1
@@ -70,15 +74,21 @@ require (
 	github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/stretchr/testify v1.4.0
-	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
-	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd
+	github.com/stretchr/objx v0.3.0 // indirect
+	github.com/stretchr/testify v1.6.1
+	github.com/vektra/mockery v1.1.2 // indirect
+	github.com/yuin/goldmark v1.2.0 // indirect
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sys v0.0.0-20200722175500-76b94024e4b6
+	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+	golang.org/x/tools v0.0.0-20200724022722-7017fd6b1305 // indirect
 	google.golang.org/grpc v1.23.0
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	k8s.io/api v0.0.0-20190325185214-7544f9db76f6
 	k8s.io/apimachinery v0.0.0-20190223001710-c182ff3b9841
 	k8s.io/client-go v8.0.0+incompatible
