@@ -402,7 +402,7 @@ func (a *Agent) Start() error {
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
 	// create the cache
-	a.cache = cache.New(nil)
+	a.cache = cache.New(c.Cache)
 
 	// create the config for the rpc server/client
 	consulCfg, err := a.consulConfig()
