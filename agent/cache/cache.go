@@ -348,7 +348,7 @@ func (c *Cache) getEntryLocked(
 	info RequestInfo,
 ) (entryExists bool, entryValid bool, entry cacheEntry) {
 	entry, ok := c.entries[key]
-	if !entry.Valid {
+	if !entry.Valid || !ok {
 		return ok, false, entry
 	}
 
@@ -357,22 +357,22 @@ func (c *Cache) getEntryLocked(
 	if tEntry.Opts.SupportsBlocking && info.MinIndex > 0 && info.MinIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
-		return true, false, entry
+		return ok, false, entry
 	}
 
 	// Check MaxAge is not exceeded if this is not a background refreshing type
 	// and MaxAge was specified.
 	if !tEntry.Opts.Refresh && info.MaxAge > 0 && entryExceedsMaxAge(info.MaxAge, entry) {
-		return true, false, entry
+		return ok, false, entry
 	}
 
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
-		return true, false, entry
+		return ok, false, entry
 	}
 
-	return true, true, entry
+	return ok, ok, entry
 }
 
 func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
@@ -491,6 +491,13 @@ RETRY_GET:
 		goto RETRY_GET
 
 	case <-timeoutCh:
+		if entry.Index == 0 {
+			// This might happen with streaming: if fetch was stopped while
+			// not having fully received data (if fetch is very close from TTL end)
+			// In any case, looks like a legit safety guard because it avoids
+			// Returning index with empty result, will return an HTTP 500 instead
+			return nil, ResultMeta{}, ErrCacheFetchFailure
+		}
 		// Timeout on the cache read, just return whatever we have.
 		return entry.Value, ResultMeta{Index: entry.Index}, nil
 	}
@@ -510,9 +517,15 @@ func makeEntryKey(t, dc, token, key string) string {
 // if the entry doesn't exist. This latter case is to support refreshing.
 func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
 	// We acquire a write lock because we may have to set Fetching to true.
+	tEntry := r.TypeEntry
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
 	ok, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
+	expiryTime := entry.Expiry.Expiry()
+	if ok && entryValid && tEntry.Opts.SupportsBlocking && expiryTime.Sub(time.Now()) < time.Second {
+		// This will avoid that the entry does expires while performing streaming fetches
+		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
+	}
 
 	// This handles the case where a fetch succeeded after checking for its existence in
 	// getWithIndex. This ensures that we don't miss updates.
@@ -557,7 +570,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
 
-	tEntry := r.TypeEntry
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
 		// If we have background refresh and currently are in "disconnected" state,
@@ -589,6 +601,22 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			if fOpts.Timeout == 0 {
 				fOpts.Timeout = 10 * time.Minute
 			}
+			// We want to refresh before the TTL of cache entry in any case
+			refreshBefore := expiryTime.Sub(time.Now())
+			if refreshBefore <= 0 {
+				refreshBefore = tEntry.Opts.LastGetTTL
+			}
+
+			if refreshBefore > time.Second {
+				// Lets timeout at least 1 second before the cache entry ends
+				refreshBefore -= time.Second
+			} else {
+				// Less than 1 second, let's try to go fast
+				refreshBefore /= 2
+			}
+			if refreshBefore < fOpts.Timeout {
+				fOpts.Timeout = refreshBefore
+			}
 		}
 		if entry.Valid {
 			fOpts.LastResult = &FetchResult{
@@ -608,6 +636,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		result, err := r.Fetch(fOpts)
 		if connectedTimer != nil {
 			connectedTimer.Stop()
+		}
+		if err == ErrCacheRefreshRoutineStopped {
+			return
 		}
 
 		// Copy the existing entry to start.
