@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -559,4 +560,84 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}
+}
+
+func TestStreamingHealthServices_IntegrationWithCache_Expiry(t *testing.T) {
+	namespace := getNamespace("ns2")
+
+	client := NewTestStreamingClient(namespace)
+	typ := StreamingHealthServices{deps: MaterializerDeps{
+		Client: client,
+		Logger: hclog.Default(),
+	}}
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(StreamingHealthServicesName, &shortTTL{typ})
+
+	batchEv := newEventBatchWithEvents(
+		newEventServiceHealthRegister(5, 1, "web"))
+	client.QueueEvents(
+		batchEv,
+		newEndOfSnapshotEvent(5))
+
+	req := &structs.ServiceSpecificRequest{
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+	}
+	req.MinQueryIndex = 1
+	req.MaxQueryTime = time.Second
+
+	ctx := context.Background()
+
+	runStep(t, "initial fetch of results", func(t *testing.T) {
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), meta.Index)
+		require.NotNil(t, res)
+		req.MinQueryIndex = meta.Index
+	})
+
+	runStep(t, "request should block, and hit the cache TTL", func(t *testing.T) {
+		start := time.Now()
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), meta.Index)
+		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
+		require.NotNil(t, res)
+		// Will force immediate reponse for next call
+		req.MinQueryIndex = meta.Index - 1
+	})
+
+	runStep(t, "the next request should succeed", func(t *testing.T) {
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), meta.Index)
+		require.NotNil(t, res)
+		req.MinQueryIndex = meta.Index
+	})
+
+	// We sleep, so cache entry will likely expire during blocking query
+	// If this test is unstable, probably a bug has been introduced
+	time.Sleep(1 * time.Second)
+
+	runStep(t, "cache might expire during the blocking query", func(t *testing.T) {
+		start := time.Now()
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
+		require.Equal(t, uint64(5), meta.Index)
+		require.NotNil(t, res)
+		req.MinQueryIndex = meta.Index - 1
+	})
+}
+
+type shortTTL struct {
+	StreamingHealthServices
+}
+
+func (s *shortTTL) RegisterOptions() cache.RegisterOptions {
+	opts := s.RegisterOptionsBlockingRefresh.RegisterOptions()
+	opts.LastGetTTL = 1*time.Second + 100*time.Millisecond
+	return opts
 }
