@@ -45,7 +45,8 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	empty := &structs.IndexedCheckServiceNodes{
 		Nodes: structs.CheckServiceNodes{},
 		QueryMeta: structs.QueryMeta{
-			Index: 1,
+			Index:       1,
+			KnownLeader: true,
 		},
 	}
 
