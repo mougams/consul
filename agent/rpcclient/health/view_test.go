@@ -101,8 +101,9 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 	empty := &structs.IndexedCheckServiceNodes{
 		Nodes: structs.CheckServiceNodes{},
 		QueryMeta: structs.QueryMeta{
-			Index:   1,
-			Backend: structs.QueryBackendStreaming,
+			Index:       1,
+			Backend:     structs.QueryBackendStreaming,
+			KnownLeader: true,
 		},
 	}
 
