@@ -114,6 +114,12 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		}
 	}
 
+	// Copy service weights if sidecar weights not already defined
+	// .i.e. defined means different from default one
+	if (sidecar.Weights == nil || sidecar.Weights.Passing == 1 && sidecar.Weights.Warning == 1) && ns.Weights != nil {
+		sidecar.Weights = ns.Weights
+	}
+
 	// Allocate port if needed (min and max inclusive).
 	rangeLen := a.config.ConnectSidecarMaxPort - a.config.ConnectSidecarMinPort + 1
 	if sidecar.Port < 1 && a.config.ConnectSidecarMinPort > 0 && rangeLen > 0 {
