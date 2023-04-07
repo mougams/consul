@@ -3630,10 +3630,10 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				Weights:           &structs.Weights{Passing: 16, Warning: 0},
 				Kind:              structs.ServiceKindConnectProxy,
 				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "web",
-					DestinationServiceID:   "web",
-					LocalServiceAddress:    tt.ip,
-					LocalServicePort:       1234,
+					DestinationServiceName: "test-proxy",
+					DestinationServiceID:   "test-sidecar-proxy",
+					LocalServiceAddress:    "",
+					LocalServicePort:       8001,
 					Config: map[string]interface{}{
 						"destination_type": "proxy.config is 'opaque' so should not get translated",
 					},
@@ -3674,7 +3674,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				TaggedAddresses:            map[string]structs.ServiceAddress{},
 				Port:                       8001,
 				EnableTagOverride:          true,
-				Weights:                    &structs.Weights{Passing: 1, Warning: 1},
+				Weights:                    &structs.Weights{Passing: 16, Warning: 0},
 				LocallyRegisteredAsSidecar: true,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "test",
