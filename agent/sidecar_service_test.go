@@ -277,6 +277,84 @@ func TestAgent_SidecarPortFromServiceIDLocked(t *testing.T) {
 			autoPortsDisabled: true,
 			wantErr:           "auto-assignment disabled in config",
 		},
+		{
+			name: "connet weights override",
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1111,
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Weights: &structs.Weights{Passing: 22, Warning: 12},
+					},
+				},
+				Weights: &structs.Weights{Passing: 21, Warning: 11},
+			},
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				LocallyRegisteredAsSidecar: true,
+				Weights: &structs.Weights{Passing: 22, Warning: 12},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "127.0.0.1:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+		},
+		{
+			name: "connect weights from service",
+			sd: &structs.ServiceDefinition{
+				ID:   "web1",
+				Name: "web",
+				Port: 1111,
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{},
+				},
+				Weights: &structs.Weights{Passing: 21, Warning: 11},
+			},
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web1-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				LocallyRegisteredAsSidecar: true,
+				Weights: &structs.Weights{Passing: 21, Warning: 11},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web1",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1111,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "127.0.0.1:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web1",
+					AliasService: "web1",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
