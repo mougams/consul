@@ -1,3 +1,22 @@
+## 1.12.9-criteo1 (April 7, 2023)
+
+These were ported from consul v1.12.5-criteo8
+FEATURES:
+
+* audit: Added token/role/policy/catalog/kv audit feature (write access logs). [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+
+IMPROVEMENTS:
+
+* api: non-connect endpoints give downstream connect information. [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+* connect: re-add common name on secondary CA intermediate certificate. [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+* connect: re-align root CA state if needed. [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+* Get sidecar weights from node service if not specified [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+* Set KnownLeader by default when streaming is activated [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+
+BUG FIXES:
+
+* connect: fix shouldPersistNewRootAndConfig logic. [[GH-151](https://github.com/criteo-forks/consul/pull/151)]
+
 ## 1.12.9 (January 26, 2023)
 
 FEATURES:
