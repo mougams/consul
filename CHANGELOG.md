@@ -1,3 +1,9 @@
+## 1.12.9-criteo2 (May 23, 2023)
+
+FEATURES:
+
+* Add option in prepared query to skip local datacenter - [[GH-200](https://github.com/criteo-forks/consul/pull/200)]
+
 ## 1.12.9-criteo1 (April 7, 2023)
 
 These were ported from consul v1.12.5-criteo8
