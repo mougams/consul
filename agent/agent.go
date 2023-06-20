@@ -3406,7 +3406,28 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		// Remove sidecar from NodeService now it's done it's job it's just a config
 		// syntax sugar and shouldn't be persisted in local or server state.
 		ns.Connect.SidecarService = nil
+
+		// If there is a sidecar service, first register it
 		if sidecar != nil {
+			sidecarServiceID := sidecar.CompoundServiceID()
+			sidecarReq := addServiceLockedRequest{
+				AddServiceRequest: AddServiceRequest{
+					Service:               sidecar,
+					chkTypes:              sidecarChecks,
+					persist:               false, // don't rewrite the file with the same data we just read
+					token:                 sidecarToken,
+					replaceExistingChecks: false, // do default behavior
+					Source:                ConfigSourceLocal,
+				},
+				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sidecarServiceID]),
+				persistServiceConfig: false, // don't rewrite the file with the same data we just read
+				checkStateSnapshot:   snap,
+			}
+			err = a.addServiceLocked(sidecarReq)
+			if err != nil {
+				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
+			}
+
 			ns.Proxy.LocalServicePort = sidecar.Port
 			ns.Proxy.LocalServiceAddress = sidecar.Address
 			ns.Proxy.DestinationServiceID = sidecar.ID
@@ -3421,7 +3442,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				persist:               false, // don't rewrite the file with the same data we just read
 				token:                 service.Token,
 				replaceExistingChecks: false, // do default behavior
-				Source:                ConfigSourceLocal,
+					Source:                ConfigSourceLocal,
 			},
 			serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sid]),
 			persistServiceConfig: false, // don't rewrite the file with the same data we just read
@@ -3429,27 +3450,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
-		}
-
-		// If there is a sidecar service, register that too.
-		if sidecar != nil {
-			sidecarServiceID := sidecar.CompoundServiceID()
-			err = a.addServiceLocked(addServiceLockedRequest{
-				AddServiceRequest: AddServiceRequest{
-					Service:               sidecar,
-					chkTypes:              sidecarChecks,
-					persist:               false, // don't rewrite the file with the same data we just read
-					token:                 sidecarToken,
-					replaceExistingChecks: false, // do default behavior
-					Source:                ConfigSourceLocal,
-				},
-				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sidecarServiceID]),
-				persistServiceConfig: false, // don't rewrite the file with the same data we just read
-				checkStateSnapshot:   snap,
-			})
-			if err != nil {
-				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
-			}
 		}
 	}
 
