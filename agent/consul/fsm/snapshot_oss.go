@@ -927,9 +927,7 @@ func restoreServiceVirtualIP(header *SnapshotHeader, restore *state.Restore, dec
 	}
 
 	if err := restore.ServiceVirtualIP(vip); err != nil {
-		//return err
-		fmt.Println("[DEBUG] bypass ServiceVirtualIP snapshot restore error")
-		return nil
+		return err
 	}
 	return nil
 }
