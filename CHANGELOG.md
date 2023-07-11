@@ -1,3 +1,22 @@
+## 1.15.4-criteo1 (July 11, 2023)
+BUG FIXES:
+
+* connect: fix shouldPersistNewRootAndConfig logic [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+
+FEATURES:
+
+* Add option in prepared query to skip local datacenter [[GH-200](https://github.com/criteo-forks/consul/pull/200)]
+* audit: add audit logs for kv and service registration [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+* acl: add audit logs for role/policy/token creation/deletion [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+
+IMPROVEMENTS:
+
+* connect: re-add common name on secondary CA intermediate certificate [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+* Set KnownLeader by default when streaming is activated [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+* Get sidecar weights from node service if not specified [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+* api: non-connect endpoints give downstream connect informations [[GH-202](https://github.com/criteo-forks/consul/pull/202)]
+* strip version to avoid any leading/trailing whitespaces/newlines [[GH-224](https://github.com/criteo-forks/consul/pull/224)]
+
 ## 1.15.4 (June 26, 2023)
 FEATURES:
 
