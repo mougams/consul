@@ -1,3 +1,8 @@
+## 1.15.4-criteo2 (August 24, 2023)
+FEATURES:
+
+* Allow to override DeregisterCriticalServiceAfter for sidecar services [[GH-227](https://github.com/criteo-forks/consul/pull/227)]
+
 ## 1.15.4-criteo1 (July 11, 2023)
 BUG FIXES:
 
