@@ -431,10 +431,12 @@ func TestAgent_SidecarDefaultChecks(t *testing.T) {
 				Name:     "Connect Sidecar Listening",
 				TCP:      "123.123.123.123:2222",
 				Interval: 10 * time.Second,
+				DeregisterCriticalServiceAfter: 123 * time.Second,
 			},
 			{
 				Name:         "Connect Sidecar Aliasing web1-1",
 				AliasService: "web1-1",
+				DeregisterCriticalServiceAfter: 123 * time.Second,
 			},
 		},
 	},
@@ -448,10 +450,12 @@ func TestAgent_SidecarDefaultChecks(t *testing.T) {
 					Name:     "Connect Sidecar Listening",
 					TCP:      "1.2.3.4:2222",
 					Interval: 10 * time.Second,
+					DeregisterCriticalServiceAfter: 123 * time.Second,
 				},
 				{
 					Name:         "Connect Sidecar Aliasing web1-1",
 					AliasService: "web1-1",
+					DeregisterCriticalServiceAfter: 123 * time.Second,
 				},
 			},
 		},
@@ -466,17 +470,19 @@ func TestAgent_SidecarDefaultChecks(t *testing.T) {
 					Name:     "Connect Sidecar Listening",
 					TCP:      "123.123.123.123:2222",
 					Interval: 10 * time.Second,
+					DeregisterCriticalServiceAfter: 123 * time.Second,
 				},
 				{
 					Name:         "Connect Sidecar Aliasing 1-sidecar-proxy-web1",
 					AliasService: "1-sidecar-proxy-web1",
+					DeregisterCriticalServiceAfter: 123 * time.Second,
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotChecks := sidecarDefaultChecks(tt.serviceID, tt.svcAddress, tt.proxyLocalSvcAddress, tt.port)
+			gotChecks := sidecarDefaultChecks(tt.serviceID, tt.svcAddress, tt.proxyLocalSvcAddress, tt.port, 123 * time.Second)
 			require.Equal(t, tt.wantChecks, gotChecks)
 		})
 	}
