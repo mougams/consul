@@ -143,6 +143,26 @@ service_prefix "api-" {
 `,
 			},
 		},
+		"criteo-enable-agent-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicyEnableAgentID,
+				TemplateName: api.ACLTemplatedPolicyEnableAgentName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "api",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: criteo/enable_agent",
+				Rules: `
+agent_prefix "api" {
+  policy = "write"
+}
+node_prefix "api" {
+  policy = "write"
+}
+`,
+			},
+		},
 	}
 
 	for name, tcase := range testCases {
