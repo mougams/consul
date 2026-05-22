@@ -31,6 +31,9 @@ var ACLTemplatedPolicyAllowService string
 //go:embed acltemplatedpolicy/policies/ce/allow_path.hcl
 var ACLTemplatedPolicyAllowPath string
 
+//go:embed acltemplatedpolicy/policies/ce/enable_agent.hcl
+var ACLTemplatedPolicyEnableAgent string
+
 func (t *ACLToken) TemplatedPolicyList() []*ACLTemplatedPolicy {
 	if len(t.TemplatedPolicies) == 0 {
 		return nil
