@@ -231,6 +231,7 @@
     "HTTPSHandshakeTimeout": "0s",
     "HTTPSPort": 0,
     "HTTPUseCache": false,
+    "HiddenDatacenters": [],
     "KVMaxValueSize": 1234567800000000,
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,

@@ -902,6 +902,15 @@ type RuntimeConfig struct {
 	// hcl: primary_datacenter = string
 	PrimaryDatacenter string
 
+	// HiddenDatacenters is a list of datacenter names that should be omitted
+	// from the response of the /v1/catalog/datacenters endpoint. The
+	// datacenters remain fully federated and routable; they are only hidden
+	// from that listing.
+	//
+	// hcl: hidden_datacenters = []string
+	// flag: -hidden-datacenter string -hidden-datacenter string
+	HiddenDatacenters []string
+
 	// PrimaryGateways is a list of addresses and/or go-discover expressions to
 	// discovery the mesh gateways in the primary datacenter. See
 	// https://developer.hashicorp.com/docs/agent/config/cli-flags#cloud-auto-joining for

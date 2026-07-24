@@ -1076,6 +1076,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		PeeringTestAllowPeerRegistrations: boolValWithDefault(c.Peering.TestAllowPeerRegistrations, false),
 		PidFile:                           stringVal(c.PidFile),
 		PrimaryDatacenter:                 primaryDatacenter,
+		HiddenDatacenters:                 c.HiddenDatacenters,
 		PrimaryGateways:                   b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
 		PrimaryGatewaysInterval:           b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
 		RPCAdvertiseAddr:                  rpcAdvertiseAddr,

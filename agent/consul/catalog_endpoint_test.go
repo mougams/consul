@@ -874,6 +874,50 @@ func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 	}
 }
 
+func TestCatalog_ListDatacenters_HiddenDatacenters(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		// dc2 must not appear in the endpoint response, while dc1 and dc3 do.
+		c.HiddenDatacenters = []string{"dc2"}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDC(t, "dc3")
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	joinWAN(t, s3, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Wait until all three datacenters are known to the WAN router, then
+	// confirm the hidden one is filtered out of the response.
+	retry.Run(t, func(r *retry.R) {
+		dcs, err := s1.router.GetDatacentersByDistance()
+		require.NoError(r, err)
+		require.Len(r, dcs, 3)
+
+		var out []string
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.ListDatacenters", struct{}{}, &out))
+		require.ElementsMatch(r, []string{"dc1", "dc3"}, out)
+		require.NotContains(r, out, "dc2")
+	})
+}
+
 func TestCatalog_ListNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

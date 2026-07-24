@@ -531,6 +531,23 @@ func (c *Catalog) ListDatacenters(args *structs.DatacentersRequest, reply *[]str
 		dcs = []string{c.srv.config.Datacenter}
 	}
 
+	// Omit any datacenters the operator has configured to hide from this
+	// listing. The datacenters remain federated and routable; they are only
+	// filtered out of this endpoint's response.
+	if len(c.srv.config.HiddenDatacenters) > 0 {
+		hidden := make(map[string]struct{}, len(c.srv.config.HiddenDatacenters))
+		for _, dc := range c.srv.config.HiddenDatacenters {
+			hidden[dc] = struct{}{}
+		}
+		filtered := dcs[:0]
+		for _, dc := range dcs {
+			if _, skip := hidden[dc]; !skip {
+				filtered = append(filtered, dc)
+			}
+		}
+		dcs = filtered
+	}
+
 	*reply = dcs
 	return nil
 }

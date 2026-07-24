@@ -190,6 +190,7 @@ type Config struct {
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`
+	HiddenDatacenters                []string            `mapstructure:"hidden_datacenters" json:"hidden_datacenters,omitempty"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
 	LicensePath                      *string             `mapstructure:"license_path" json:"license_path,omitempty"`
 	Limits                           Limits              `mapstructure:"limits" json:"-"`

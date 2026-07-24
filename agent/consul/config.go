@@ -94,6 +94,12 @@ type Config struct {
 	// and Connect.
 	PrimaryDatacenter string
 
+	// HiddenDatacenters is a list of datacenter names that are omitted from the
+	// response of the Catalog.ListDatacenters RPC (and therefore the
+	// /v1/catalog/datacenters HTTP endpoint). The datacenters remain fully
+	// federated and routable; they are only hidden from that listing.
+	HiddenDatacenters []string
+
 	// DataDir is the directory to store our state in.
 	DataDir string
 

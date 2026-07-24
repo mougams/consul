@@ -1354,6 +1354,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// todo(fs): or is there a reason to keep it like that?
 	cfg.Datacenter = runtimeCfg.Datacenter
 	cfg.PrimaryDatacenter = runtimeCfg.PrimaryDatacenter
+	cfg.HiddenDatacenters = runtimeCfg.HiddenDatacenters
 	cfg.DataDir = runtimeCfg.DataDir
 	cfg.NodeName = runtimeCfg.NodeName
 	cfg.ACLResolverSettings = runtimeCfg.ACLResolverSettings

@@ -79,6 +79,7 @@ func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add(&f.FlagValues.RaftProtocol, "raft-protocol", "Sets the Raft protocol version. Defaults to latest.")
 	add(&f.FlagValues.DNSRecursors, "recursor", "Address of an upstream DNS server. Can be specified multiple times.")
 	add(&f.FlagValues.PrimaryGateways, "primary-gateway", "Address of a mesh gateway in the primary datacenter to use to bootstrap WAN federation at start time with retries enabled. Can be specified multiple times.")
+	add(&f.FlagValues.HiddenDatacenters, "hidden-datacenter", "Datacenter to hide from the /v1/catalog/datacenters endpoint response. Can be specified multiple times.")
 	add(&f.FlagValues.RejoinAfterLeave, "rejoin", "Ignores a previous leave and attempts to rejoin the cluster.")
 	add(&f.FlagValues.AutoReloadConfig, "auto-reload-config", "Watches config files for changes and auto reloads the files when modified.")
 	add(&f.FlagValues.RetryJoinIntervalLAN, "retry-interval", "Time to wait between join attempts.")
